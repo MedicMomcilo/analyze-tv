@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=TV Analyze
+GenericName=TV Analyze
+X-GNOME-FullName=Analyze TV Channels
+Comment=This software analyzes different aspects of analog TV Channels
+Keywords=tv;analyze;channel
+Exec=analyze
+Icon=orca
+Terminal=true
+Type=Application
+StartupNotify=true
+Categories=GTK;GNOME;Utility
+
