@@ -140,6 +140,16 @@ do
 			echo " Compression level:" ${comp_lvl:0:(-3)}" tB"
 			signal_lvl=$(v4l2-ctl --get-tuner | grep strength | cut -d" " -f 5 | cut -d"%" -f1)
 			echo "   Signal strength:" $signal_lvl" ess"
+
+			# Send to Zabbix:
+			rm -rf result.zab
+			echo $item tv.blackframes $black_dur >> result.zab
+			echo $item tv.diversity $comp_lvl >> result.zab
+			echo $item tv.result 0 >> result.zab
+			echo $item tv.signal $signal_lvl >> result.zab
+			echo $item tv.sound $sound_lvl >> result.zab
+			zabbix_sender -z mystique.ukljuci.ga -i result.zab
+
 			if [ $(echo $sound_lvl" < -45 " | bc -l) == "1" ]; then
 				problemFound=true
 				echo Suspected $item sound level too low - $sound_lvl " dB"
