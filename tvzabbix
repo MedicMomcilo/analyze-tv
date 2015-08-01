@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# yum install ffmpeg v4l2-utils festival
+# yum install ffmpeg v4l2-utils
 
 # Pravljenje firmware-a za driver:
 #   http://www.linuxtv.org/wiki/index.php/Xceive_XC3028/XC2028
