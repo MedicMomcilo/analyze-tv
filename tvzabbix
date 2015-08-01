@@ -102,7 +102,7 @@ do
 	for item in ${chan[*]}
 	do
 		v4l2-ctl --set-freq=$item
-		ffmpeg -f v4l2 -standard PAL-BG -channel 0 -i /dev/video0 -f alsa -i pulse -af volumedetect -filter_complex "smartblur=lr=5:cr=5[a];[a]mpdecimate=max=20:frac=1:hi=768[b];[b]blackframe" -ar 44100 -t 00:00:10.00 -y -f flv out.flv 2> out.txt
+		ffmpeg -f v4l2 -standard PAL-BG -channel 0 -i /dev/video0 -f alsa -i pulse -af volumedetect -filter_complex "smartblur=lr=5:cr=5[a];[a]mpdecimate=max=20:frac=1:hi=768[b];[b]blackframe" -ar 44100 -t 00:00:05.00 -y -f flv out.flv 2> out.txt
 		chan_result=$?
 		if [ "$chan_result" == "0" ]; then
 			sound_lvl=$(cat out.txt | grep max_volume | cut -d" " -f5)
@@ -112,10 +112,10 @@ do
 			if [ $(echo $sound_lvl" < -45 " | bc -l) == "1" ]; then
 				problemFound=true
 			fi
-			if [ "$black_dur" -gt 200 ]; then
+			if [ "$black_dur" -gt 100 ]; then
 				problemFound=true
 			fi
-			if [ "$comp_lvl" -lt 300000 ]; then
+			if [ "$comp_lvl" -lt 200000 ]; then
 				problemFound=true
 			fi
 			if [ "$signal_lvl" -lt 100 ]; then
@@ -126,7 +126,7 @@ do
 		fi
 		if [ "$problemFound" = true ]; then
 			problemFound=false
-			ffmpeg -f v4l2 -standard PAL-BG -channel 0 -i /dev/video0 -f alsa -i pulse -af volumedetect -filter_complex "smartblur=lr=5:cr=5[a];[a]mpdecimate=max=20:frac=1:hi=768[b];[b]blackframe" -ar 44100 -t 00:00:10.00 -y -f flv out.flv 2> out.txt
+			ffmpeg -f v4l2 -standard PAL-BG -channel 0 -i /dev/video0 -f alsa -i pulse -af volumedetect -filter_complex "smartblur=lr=5:cr=5[a];[a]mpdecimate=max=20:frac=1:hi=768[b];[b]blackframe" -ar 44100 -t 00:00:05.00 -y -f flv out.flv 2> out.txt
 			chan_result=$?
 			if [ "$chan_result" == "0" ]; then
 				sound_lvl=$(cat out.txt | grep max_volume | cut -d" " -f5)
@@ -136,10 +136,10 @@ do
 				if [ $(echo $sound_lvl" < -45 " | bc -l) == "1" ]; then
 					problemFound=true
 				fi
-				if [ "$black_dur" -gt 200 ]; then
+				if [ "$black_dur" -gt 100 ]; then
 					problemFound=true
 				fi
-				if [ "$comp_lvl" -lt 300000 ]; then
+				if [ "$comp_lvl" -lt 200000 ]; then
 					problemFound=true
 				fi
 				if [ "$signal_lvl" -lt 100 ]; then
