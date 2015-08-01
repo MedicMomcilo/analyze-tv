@@ -169,6 +169,9 @@ do
 		else
 			problemFound=true
 			echo Suspected $item produced open error
+
+			zabbix_sender -z mystique.ukljuci.ga -s $item -k tv.result -o $chan_result > /dev/null
+
 		fi
 		if [ "$problemFound" = true ]; then
 			problemFound=false
