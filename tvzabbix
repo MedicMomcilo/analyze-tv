@@ -1,0 +1,177 @@
+#!/bin/bash
+
+# yum install ffmpeg v4l2-utils festival
+
+# Pravljenje firmware-a za driver:
+#   http://www.linuxtv.org/wiki/index.php/Xceive_XC3028/XC2028
+
+#	112.25 je SNR kanal
+
+
+function volLine {
+	if [ "$card" == "" ]; then
+		amixer -q -c 0 -- sset Line,0 unmute 2> /dev/null
+		[ $? -eq 0 ] && card=0
+		amixer -q -c 1 -- sset Line,0 unmute 2> /dev/null
+		[ $? -eq 0 ] && card=1
+	fi
+	amixer -q -c $card -- sset Line,0 $1
+}
+
+chan=(
+	119.25
+	133.25
+	140.25
+	147.25
+	154.25
+	161.25
+	168.25
+	175.25
+	182.25
+	189.25
+	196.25
+	203.25
+	210.25
+	217.25
+	224.25
+	231.25
+	238.25
+	245.25
+	252.25
+	259.25
+	266.25
+	273.25
+	280.25
+	495.25
+	503.25
+	511.25
+	519.25
+	527.25
+	535.25
+	543.25
+	551.25
+	559.25
+	567.25
+	575.25
+	583.25
+	591.25
+	599.25
+	607.25
+	615.25
+	623.25
+	631.25
+	639.25
+	647.25
+	655.25
+	663.25
+	671.25
+	679.25
+	687.25
+	695.25
+	703.25
+	711.25
+	719.25
+	727.25
+	735.25
+	743.25
+	751.25
+	759.25
+	767.25
+	775.25
+	783.25
+	791.25
+	799.25
+	807.25
+	815.25
+	823.25
+	831.25
+	839.25
+	847.25
+)
+
+problemFound=false
+volLine mute
+v4l2-ctl --set-ctrl=mute=1
+v4l2-ctl --set-standard=0x000000f7
+v4l2-ctl --set-fmt-video=width=720,height=576,pixelformat=YUYV,field=interlaced,bytesperline=1440
+v4l2-ctl --set-ctrl=mute=0
+
+while true
+do
+	volLine mute
+	for item in ${chan[*]}
+	do
+		v4l2-ctl --set-freq=$item
+		ffmpeg -f v4l2 -standard PAL-BG -channel 0 -i /dev/video0 -f alsa -i pulse -af volumedetect -filter_complex "smartblur=lr=5:cr=5[a];[a]mpdecimate=max=20:frac=1:hi=768[b];[b]blackframe" -ar 44100 -t 00:00:10.00 -y -f flv out.flv 2> out.txt
+		chan_result=$?
+		if [ "$chan_result" == "0" ]; then
+			sound_lvl=$(cat out.txt | grep max_volume | cut -d" " -f5)
+			black_dur=$(cat out.txt | grep -c blackframe)
+			comp_lvl=$(ls out.flv -l | cut -d" " -f 5)
+			signal_lvl=$(v4l2-ctl --get-tuner | grep strength | cut -d" " -f 5 | cut -d"%" -f1)
+			if [ $(echo $sound_lvl" < -45 " | bc -l) == "1" ]; then
+				problemFound=true
+			fi
+			if [ "$black_dur" -gt 200 ]; then
+				problemFound=true
+			fi
+			if [ "$comp_lvl" -lt 300000 ]; then
+				problemFound=true
+			fi
+			if [ "$signal_lvl" -lt 100 ]; then
+				problemFound=true
+			fi
+		else
+			problemFound=true
+		fi
+		if [ "$problemFound" = true ]; then
+			problemFound=false
+			ffmpeg -f v4l2 -standard PAL-BG -channel 0 -i /dev/video0 -f alsa -i pulse -af volumedetect -filter_complex "smartblur=lr=5:cr=5[a];[a]mpdecimate=max=20:frac=1:hi=768[b];[b]blackframe" -ar 44100 -t 00:00:10.00 -y -f flv out.flv 2> out.txt
+			chan_result=$?
+			if [ "$chan_result" == "0" ]; then
+				sound_lvl=$(cat out.txt | grep max_volume | cut -d" " -f5)
+				black_dur=$(cat out.txt | grep -c blackframe)
+				comp_lvl=$(ls out.flv -l | cut -d" " -f 5)
+				signal_lvl=$(v4l2-ctl --get-tuner | grep strength | cut -d" " -f 5 | cut -d"%" -f1)
+				if [ $(echo $sound_lvl" < -45 " | bc -l) == "1" ]; then
+					problemFound=true
+				fi
+				if [ "$black_dur" -gt 200 ]; then
+					problemFound=true
+				fi
+				if [ "$comp_lvl" -lt 300000 ]; then
+					problemFound=true
+				fi
+				if [ "$signal_lvl" -lt 100 ]; then
+					problemFound=true
+				fi
+			else
+				problemFound=true
+				zabbix_sender -z mystique.ukljuci.ga -s $item -k tv.result -o $chan_result > /dev/null
+			fi
+			if [ "$problemFound" = true ]; then
+				[ $chan_result -eq 0 ] && ffplay out.flv -autoexit -loglevel quiet
+				ffplay -f v4l2 -standard PAL-BG -channel 0 /dev/video0 -loglevel quiet &
+				volLine unmute
+				sleep 10
+				killall ffplay
+				volLine mute
+				problemFound=false
+			fi
+		fi
+
+		rm -rf result.zab
+		echo $item tv.blackframes $black_dur >> result.zab
+		echo $item tv.diversity $comp_lvl >> result.zab
+		echo $item tv.result 0 >> result.zab
+		echo $item tv.signal $signal_lvl >> result.zab
+		echo $item tv.sound $sound_lvl >> result.zab
+		zabbix_sender -z mystique.ukljuci.ga -i result.zab > /dev/null
+
+		read -t 1 -n 1 key
+		if [ "$key" == "q" ]; then exit; fi
+	done
+done
+
+v4l2-ctl --set-ctrl=mute=1
+volLine mute
