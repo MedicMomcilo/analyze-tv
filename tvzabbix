@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# yum install ffmpeg v4l2-utils
+# yum install ffmpeg v4l2-utils festival
 
 # Pravljenje firmware-a za driver:
 #   http://www.linuxtv.org/wiki/index.php/Xceive_XC3028/XC2028
@@ -90,6 +90,7 @@ chan=(
 )
 
 problemFound=false
+manualCheck=0
 volLine mute
 v4l2-ctl --set-ctrl=mute=1
 v4l2-ctl --set-standard=0x000000f7
@@ -98,6 +99,21 @@ v4l2-ctl --set-ctrl=mute=0
 
 while true
 do
+        if [ $(echo $(date +%s) - $manualCheck " > 3200" | bc -l) == "1" ]; then
+               	echo "Heads up!" | festival --tts
+               	ffplay -f v4l2 -standard PAL-BG -channel 0 /dev/video0 -loglevel quiet -fs &
+               	manualCheck=$(date +%s)
+               	for item in ${chan[*]}
+               	do
+                       	volLine mute
+                       	v4l2-ctl --set-freq=$item
+                       	sleep 0.1
+                       	volLine unmute
+                       	if [ ! $(pidof ffplay) ]; then break; fi
+                       	read -t 1 -n 1 && break
+               	done
+		killall ffplay
+        fi
 	volLine mute
 	for item in ${chan[*]}
 	do
@@ -170,6 +186,7 @@ do
 
 		read -t 1 -n 1 key
 		if [ "$key" == "q" ]; then exit; fi
+		if [ "$key" == "m" ]; then manualCheck=0; break; fi
 	done
 done
 
