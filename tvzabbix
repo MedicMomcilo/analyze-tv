@@ -99,7 +99,7 @@ v4l2-ctl --set-ctrl=mute=0
 
 while true
 do
-        if [ $(echo $(date +%s) - $manualCheck " > 3200" | bc -l) == "1" ]; then
+        if [ $(echo $(date +%s) - $manualCheck " > 3500" | bc -l) == "1" ]; then
                	echo "Heads up!" | festival --tts
                	ffplay -f v4l2 -standard PAL-BG -channel 0 /dev/video0 -loglevel quiet -fs &
                	manualCheck=$(date +%s)
