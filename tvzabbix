@@ -125,13 +125,13 @@ do
 			black_dur=$(cat out.txt | grep -c blackframe)
 			comp_lvl=$(ls out.flv -l | cut -d" " -f 5)
 			signal_lvl=$(v4l2-ctl --get-tuner | grep strength | cut -d" " -f 5 | cut -d"%" -f1)
-			if [ $(echo $sound_lvl" < -45 " | bc -l) == "1" ]; then
+			if [ $(echo $sound_lvl" < -40 " | bc -l) == "1" ]; then
 				problemFound=true
 			fi
 			if [ "$black_dur" -gt 100 ]; then
 				problemFound=true
 			fi
-			if [ "$comp_lvl" -lt 200000 ]; then
+			if [ "$comp_lvl" -lt 150000 ]; then
 				problemFound=true
 			fi
 			if [ "$signal_lvl" -lt 100 ]; then
@@ -149,13 +149,13 @@ do
 				black_dur=$(cat out.txt | grep -c blackframe)
 				comp_lvl=$(ls out.flv -l | cut -d" " -f 5)
 				signal_lvl=$(v4l2-ctl --get-tuner | grep strength | cut -d" " -f 5 | cut -d"%" -f1)
-				if [ $(echo $sound_lvl" < -45 " | bc -l) == "1" ]; then
+				if [ $(echo $sound_lvl" < -40 " | bc -l) == "1" ]; then
 					problemFound=true
 				fi
 				if [ "$black_dur" -gt 100 ]; then
 					problemFound=true
 				fi
-				if [ "$comp_lvl" -lt 200000 ]; then
+				if [ "$comp_lvl" -lt 150000 ]; then
 					problemFound=true
 				fi
 				if [ "$signal_lvl" -lt 100 ]; then
@@ -169,7 +169,7 @@ do
 				[ $chan_result -eq 0 ] && ffplay out.flv -autoexit -loglevel quiet
 				ffplay -f v4l2 -standard PAL-BG -channel 0 /dev/video0 -loglevel quiet &
 				volLine unmute
-				sleep 10
+				sleep 5
 				killall ffplay
 				volLine mute
 				problemFound=false
