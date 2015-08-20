@@ -92,12 +92,12 @@ do
 	for item in ${chan[*]}
 	do
 		echo $item
-		ffmpeg -i $item -map 0:v -map 0:a:0 -af volumedetect -filter_complex "smartblur=lr=5:cr=5[a];[a]mpdecimate=max=20:frac=1:hi=768[b];[b]blackframe" -t 00:00:05.00 -y -f flv out.flv 2> out.txt
+		ffmpeg -i $item -map 0:v -map 0:a:0 -af volumedetect -filter_complex "smartblur=lr=5:cr=5[a];[a]mpdecimate=max=20:frac=1:hi=768[b];[b]blackframe" -t 00:00:05.00 -y -f flv dout.flv 2> dout.txt
 		chan_result=$?
 		if [ "$chan_result" == "0" ]; then
-			sound_lvl=$(cat out.txt | grep max_volume | cut -d" " -f5)
-			black_dur=$(cat out.txt | grep -c blackframe)
-			comp_lvl=$(ls out.flv -l | cut -d" " -f 5)
+			sound_lvl=$(cat dout.txt | grep max_volume | cut -d" " -f5)
+			black_dur=$(cat dout.txt | grep -c blackframe)
+			comp_lvl=$(ls dout.flv -l | cut -d" " -f 5)
 			if [ $(echo $sound_lvl" < -40 " | bc -l) == "1" ]; then
 				problemFound=true
 			fi
@@ -112,12 +112,12 @@ do
 		fi
 		if [ "$problemFound" = true ]; then
 			problemFound=false
-			ffmpeg -i $item -map 0:v -map 0:a:0 -af volumedetect -filter_complex "smartblur=lr=5:cr=5[a];[a]mpdecimate=max=20:frac=1:hi=768[b];[b]blackframe" -t 00:00:05.00 -y -f flv out.flv 2> out.txt
+			ffmpeg -i $item -map 0:v -map 0:a:0 -af volumedetect -filter_complex "smartblur=lr=5:cr=5[a];[a]mpdecimate=max=20:frac=1:hi=768[b];[b]blackframe" -t 00:00:05.00 -y -f flv dout.flv 2> dout.txt
 			chan_result=$?
 			if [ "$chan_result" == "0" ]; then
-				sound_lvl=$(cat out.txt | grep max_volume | cut -d" " -f5)
-				black_dur=$(cat out.txt | grep -c blackframe)
-				comp_lvl=$(ls out.flv -l | cut -d" " -f 5)
+				sound_lvl=$(cat dout.txt | grep max_volume | cut -d" " -f5)
+				black_dur=$(cat dout.txt | grep -c blackframe)
+				comp_lvl=$(ls dout.flv -l | cut -d" " -f 5)
 				if [ $(echo $sound_lvl" < -40 " | bc -l) == "1" ]; then
 					problemFound=true
 				fi
@@ -132,7 +132,7 @@ do
 				zabbix_sender -z mystique.ukljuci.ga -s $item -k tv.result -o $chan_result > /dev/null
 			fi
 			if [ "$problemFound" = true ]; then
-				[ $chan_result -eq 0 ] && ffplay out.flv -autoexit -loglevel quiet
+				[ $chan_result -eq 0 ] && ffplay dout.flv -autoexit -loglevel quiet
 				problemFound=false
 			fi
 		fi
