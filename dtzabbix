@@ -1,5 +1,23 @@
 #!/bin/bash
 
+# yum install ffmpeg v4l2-utils festival
+
+# Pravljenje firmware-a za driver:
+#   http://www.linuxtv.org/wiki/index.php/Xceive_XC3028/XC2028
+
+#	112.25 je SNR kanal
+
+
+function volLine {
+	if [ "$card" == "" ]; then
+		amixer -q -c 0 -- sset Line,0 unmute 2> /dev/null
+		[ $? -eq 0 ] && card=0
+		amixer -q -c 1 -- sset Line,0 unmute 2> /dev/null
+		[ $? -eq 0 ] && card=1
+	fi
+	amixer -q -c $card -- sset Line,0 $1
+}
+
 chan=(
 	http://46.40.5.99:8000/rts1_320
 	http://46.40.5.99:8000/rts2_320
@@ -74,71 +92,60 @@ do
 	for item in ${chan[*]}
 	do
 		echo $item
-		#ffmpeg -i $item -map 0:v -map 0:a:0 -af volumedetect -vf blackframe,mpdecimate=frac=1:hi=768 -t 00:00:05.00 -y -f flv out.flv 2> out.txt
 		ffmpeg -i $item -map 0:v -map 0:a:0 -af volumedetect -filter_complex "smartblur=lr=5:cr=5[a];[a]mpdecimate=max=20:frac=1:hi=768[b];[b]blackframe" -t 00:00:05.00 -y -f flv out.flv 2> out.txt
 		chan_result=$?
-		echo "       Chan result:" $chan_result
 		if [ "$chan_result" == "0" ]; then
 			sound_lvl=$(cat out.txt | grep max_volume | cut -d" " -f5)
-			echo "       Sound level:" $sound_lvl" dB"
 			black_dur=$(cat out.txt | grep -c blackframe)
-			echo "      Black frames:" $black_dur" fs"
 			comp_lvl=$(ls out.flv -l | cut -d" " -f 5)
-			echo " Compression level:" ${comp_lvl:0:(-3)}" tB"
-			if [ $(echo $sound_lvl" < -45 " | bc -l) == "1" ]; then
+			if [ $(echo $sound_lvl" < -40 " | bc -l) == "1" ]; then
 				problemFound=true
-				echo Suspected $item sound level too low - $sound_lvl " dB"
 			fi
 			if [ "$black_dur" -gt 100 ]; then
 				problemFound=true
-				echo Suspected $item too much black frames found - $black_dur " fs"
 			fi
 			if [ "$comp_lvl" -lt 100000 ]; then
 				problemFound=true
-				echo Suspected $item compression too low - $comp_lvl " tB"
 			fi
 		else
 			problemFound=true
-			echo Suspected $item produced open error
 		fi
 		if [ "$problemFound" = true ]; then
 			problemFound=false
-			#ffmpeg -i $item -map 0:v -map 0:a:0 -af volumedetect -vf blackframe,mpdecimate=frac=1:hi=768 -t 00:00:15.00 -y -f flv out.flv 2> out.txt
-			ffmpeg -i $item -map 0:v -map 0:a:0 -af volumedetect -filter_complex "smartblur=lr=5:cr=5[a];[a]mpdecimate=max=20:frac=1:hi=768[b];[b]blackframe" -t 00:00:15.00 -y -f flv out.flv 2> out.txt
+			ffmpeg -i $item -map 0:v -map 0:a:0 -af volumedetect -filter_complex "smartblur=lr=5:cr=5[a];[a]mpdecimate=max=20:frac=1:hi=768[b];[b]blackframe" -t 00:00:05.00 -y -f flv out.flv 2> out.txt
 			chan_result=$?
 			if [ "$chan_result" == "0" ]; then
 				sound_lvl=$(cat out.txt | grep max_volume | cut -d" " -f5)
 				black_dur=$(cat out.txt | grep -c blackframe)
 				comp_lvl=$(ls out.flv -l | cut -d" " -f 5)
-				if [ $(echo $sound_lvl" < -45 " | bc -l) == "1" ]; then
+				if [ $(echo $sound_lvl" < -40 " | bc -l) == "1" ]; then
 					problemFound=true
-					echo Confirmed $item sound level too low - $sound_lvl dB >> problems.txt
-					echo Sound issues | festival --tts
 				fi
-				if [ "$black_dur" -gt 300 ]; then
+				if [ "$black_dur" -gt 100 ]; then
 					problemFound=true
-					echo Confirmed $item too much black frames found - $black_dur frames >> problems.txt
-					echo Black picture | festival --tts
 				fi
-				if [ "$comp_lvl" -lt 300000 ]; then
+				if [ "$comp_lvl" -lt 100000 ]; then
 					problemFound=true
-					cp out.flv out-$(echo $item | cut -d"/" -f 4).flv
-					echo Compression issues | festival --tts
-					echo Confirmed $item compression too low - $comp_lvl level >> problems.txt
 				fi
 			else
 				problemFound=true
-				echo Confirmed $item produced open error >> problems.txt
+				zabbix_sender -z mystique.ukljuci.ga -s $item -k tv.result -o $chan_result > /dev/null
 			fi
 			if [ "$problemFound" = true ]; then
-				echo -n -e "\a"
 				[ $chan_result -eq 0 ] && ffplay out.flv -autoexit -loglevel quiet
-				cp out.txt out-$(echo $item | cut -d"/" -f 4).txt
 				problemFound=false
 			fi
 		fi
-		# Ovaj read je samo za hvatanje prekida
-		read -t 1 -n 1 && break
+
+		rm -rf result.zab
+		chName=$(echo $item | cut -d/ -f 4)
+		echo $chName tv.blackframes $black_dur >> result.zab
+		echo $chName tv.diversity $comp_lvl >> result.zab
+		echo $chName tv.result 0 >> result.zab
+		echo $chName tv.sound $sound_lvl >> result.zab
+		zabbix_sender -z mystique.ukljuci.ga -i result.zab > /dev/null
+
+		read -t 1 -n 1 key
+		if [ "$key" == "q" ]; then exit; fi
 	done
-	read -t 1 -n 1 && break
 done
