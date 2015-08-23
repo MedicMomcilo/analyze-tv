@@ -176,13 +176,15 @@ do
 			fi
 		fi
 
-		rm -rf result.zab
-		echo $item tv.blackframes $black_dur >> result.zab
-		echo $item tv.diversity $comp_lvl >> result.zab
-		echo $item tv.result 0 >> result.zab
-		echo $item tv.signal $signal_lvl >> result.zab
-		echo $item tv.sound $sound_lvl >> result.zab
-		zabbix_sender -z mystique.ukljuci.ga -i result.zab > /dev/null
+		if [ "$chan_result" == "0" ]; then
+			rm -rf result.zab
+			echo $item tv.blackframes $black_dur >> result.zab
+			echo $item tv.diversity $comp_lvl >> result.zab
+			echo $item tv.result 0 >> result.zab
+			echo $item tv.signal $signal_lvl >> result.zab
+			echo $item tv.sound $sound_lvl >> result.zab
+			zabbix_sender -z mystique.ukljuci.ga -i result.zab > /dev/null
+		fi
 
 		read -t 1 -n 1 key
 		if [ "$key" == "q" ]; then exit; fi
