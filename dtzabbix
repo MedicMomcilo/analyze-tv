@@ -129,7 +129,8 @@ do
 				fi
 			else
 				problemFound=true
-				zabbix_sender -z mystique.ukljuci.ga -s $item -k tv.result -o $chan_result > /dev/null
+				chName=$(echo $item | cut -d/ -f 4)
+				zabbix_sender -z mystique.ukljuci.ga -s $chName -k tv.result -o $chan_result > /dev/null
 			fi
 			if [ "$problemFound" = true ]; then
 				[ $chan_result -eq 0 ] && ffplay dout.flv -autoexit -loglevel quiet
@@ -137,13 +138,15 @@ do
 			fi
 		fi
 
-		rm -rf result.zab
-		chName=$(echo $item | cut -d/ -f 4)
-		echo $chName tv.blackframes $black_dur >> result.zab
-		echo $chName tv.diversity $comp_lvl >> result.zab
-		echo $chName tv.result 0 >> result.zab
-		echo $chName tv.sound $sound_lvl >> result.zab
-		zabbix_sender -z mystique.ukljuci.ga -i result.zab > /dev/null
+		if [ "$chan_result" == "0" ]; then		
+			rm -rf result.zab
+			chName=$(echo $item | cut -d/ -f 4)
+			echo $chName tv.blackframes $black_dur >> result.zab
+			echo $chName tv.diversity $comp_lvl >> result.zab
+			echo $chName tv.result 0 >> result.zab
+			echo $chName tv.sound $sound_lvl >> result.zab
+			zabbix_sender -z mystique.ukljuci.ga -i result.zab > /dev/null
+		fi
 
 		read -t 1 -n 1 key
 		if [ "$key" == "q" ]; then exit; fi
