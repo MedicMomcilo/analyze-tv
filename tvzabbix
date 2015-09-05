@@ -163,7 +163,7 @@ do
 				fi
 			else
 				problemFound=true
-				zabbix_sender -z mystique.ukljuci.ga -s $item -k tv.result -o $chan_result > /dev/null
+				zabbix_sender -z localhost -s $item -k tv.result -o $chan_result > /dev/null
 			fi
 			if [ "$problemFound" = true ]; then
 				[ $chan_result -eq 0 ] && ffplay out.flv -autoexit -loglevel quiet
@@ -183,7 +183,7 @@ do
 			echo $item tv.result 0 >> result.zab
 			echo $item tv.signal $signal_lvl >> result.zab
 			echo $item tv.sound $sound_lvl >> result.zab
-			zabbix_sender -z mystique.ukljuci.ga -i result.zab > /dev/null
+			zabbix_sender -z localhost -i result.zab > /dev/null
 		fi
 
 		read -t 1 -n 1 key

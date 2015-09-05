@@ -130,7 +130,7 @@ do
 			else
 				problemFound=true
 				chName=$(echo $item | cut -d/ -f 4)
-				zabbix_sender -z mystique.ukljuci.ga -s $chName -k tv.result -o $chan_result > /dev/null
+				zabbix_sender -z localhost -s $chName -k tv.result -o $chan_result > /dev/null
 			fi
 			if [ "$problemFound" = true ]; then
 				[ $chan_result -eq 0 ] && ffplay dout.flv -autoexit -loglevel quiet
@@ -145,7 +145,7 @@ do
 			echo $chName tv.diversity $comp_lvl >> result.zab
 			echo $chName tv.result 0 >> result.zab
 			echo $chName tv.sound $sound_lvl >> result.zab
-			zabbix_sender -z mystique.ukljuci.ga -i result.zab > /dev/null
+			zabbix_sender -z localhost -i result.zab > /dev/null
 		fi
 
 		read -t 1 -n 1 key
